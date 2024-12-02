@@ -17,10 +17,11 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: 'https://dev-pavithan-tech-e-model-frontend.vercel.app', // Updated to your deployed frontend URL
-  methods: ['POST', 'GET'],
+  origin: 'https://dev-pavithan-tech-e-model-frontend.vercel.app', // Your frontend URL
+  methods: ['GET', 'POST', 'OPTIONS'], // Allow necessary methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow custom headers
+  credentials: true, // Allow cookies if needed
 }));
-
 const port = 8000;
 
 app.get("/", (req, res) => {
