@@ -33,10 +33,20 @@ app.use(cors({
     'http://localhost:5173', // Local dev server
     'https://dev-pavithan-tech-e-model-frontend.vercel.app' // Vercel frontend
   ],
-  methods: ['POST', 'GET'],
+  methods: ['POST', 'GET', 'OPTIONS'], // Allow OPTIONS method for preflight requests
+  allowedHeaders: ['Content-Type'], // Allow Content-Type header
   credentials: true
 }));
 
+// Respond to OPTIONS preflight request
+app.options('*', cors({
+  origin: [
+    'http://localhost:5173', // Local dev server
+    'https://dev-pavithan-tech-e-model-frontend.vercel.app' // Vercel frontend
+  ],
+  methods: ['POST', 'GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'], // Allow Content-Type header
+}));
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
