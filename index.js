@@ -9,7 +9,7 @@ import fetch from "node-fetch";
 dotenv.config();
 
 // Google Gemini API key
-const geminiApiKey = process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY";
+const geminiApiKey = process.env.GEMINI_API_KEY || "AIzaSyDXqbT4TGH9KHS5TYoxUwQdU2iO6N2cO-Y";
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 const voiceID = "pMsXgVXv3BLzUgSXRplE";
 
@@ -17,12 +17,9 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: 'https://dev-pavithan-tech-e-model-frontend.vercel.app', // Your frontend URL
-  methods: ['GET', 'POST', 'OPTIONS'], // Allow necessary methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow custom headers
-  credentials: true, // Allow cookies if needed
+  origin: 'http://localhost:5173', // Or the domain of your frontend
+  methods: ['POST', 'GET']
 }));
-
 const port = 8000;
 
 app.get("/", (req, res) => {
@@ -33,7 +30,7 @@ app.get("/voices", async (req, res) => {
   try {
     const voices = await voice.getVoices(elevenLabsApiKey);
     res.send(voices);
-    console.log(voices);
+    console.log(voices)
   } catch (error) {
     console.error("Error fetching voices:", error);
     res.status(500).send({ error: "Failed to fetch voices" });
@@ -62,20 +59,16 @@ const lipSyncMessage = async (message) => {
   console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
 };
 
-// Function to read JSON transcript
-const readJsonTranscript = async (file) => {
-  try {
-    const data = await fs.readFile(file, "utf8");
-    const jsonData = JSON.parse(data);
-    console.log("Lip Sync JSON Data:", jsonData);
-    return jsonData; // Ensure this returns the correct object
-  } catch (error) {
-    console.error(`Error reading JSON transcript from ${file}:`, error);
-    throw new Error("Failed to read JSON transcript");
-  }
-};
+// const readJsonTranscript = async (file) => {
+//   try {
+//     const data = await fs.readFile(file, "utf8");
+//     return JSON.parse(data);
+//   } catch (error) {
+//     console.error(`Error reading JSON transcript from ${file}:`, error);
+//     throw new Error("Failed to read JSON transcript");
+//   }
+// };
 
-// Convert audio file to base64
 const audioFileToBase64 = async (file) => {
   try {
     const data = await fs.readFile(file);
@@ -174,6 +167,7 @@ app.post("/chat", async (req, res) => {
     const completion = await response.json();
     console.log("Gemini API response:", JSON.stringify(completion, null, 2));
 
+    // Parse the response from Gemini API
     let messages = [];
     if (completion.candidates && completion.candidates.length > 0) {
       const candidate = completion.candidates[0];
@@ -191,11 +185,24 @@ app.post("/chat", async (req, res) => {
       throw new Error("No candidates found in response.");
     }
 
+    // Process messages for audio and lipsync
     for (let i = 0; i < messages.length; i++) {
       const message = messages[i];
       const fileName = `audios/message_${i}.mp3`;
       try {
-        const messageText = message.text.includes("😊") ? message.text.replace("😊", "") : message.text;
+        // Use a simple test message for the voice request
+        const messageText = message.text.includes("😊") ? message.text.replace("😊", "") : message.text; // Remove emoji for testing
+        console.log("Requesting TTS for message:", messageText);
+
+        // Log request data
+        console.log("Request data:", {
+          text: messageText,
+          voice_settings: {
+            stability: 0,
+            similarity_boost: 0
+          }
+        });
+
         await voice.textToSpeech(elevenLabsApiKey, voiceID, fileName, messageText);
         await lipSyncMessage(i);
         message.audio = await audioFileToBase64(fileName);
@@ -216,3 +223,51 @@ app.post("/chat", async (req, res) => {
 app.listen(port, () => {
   console.log(`listening on port ${port}`);
 });
+
+
+
+// test
+
+app.post("/generate-lipsync", async (req, res) => {
+  console.log("Request Body:", req.body); // Log the request body
+  const { audioFile } = req.body;
+
+  if (!audioFile) {
+    return res.status(400).send({ error: "No audio file provided." });
+  }
+
+  console.log("Received audioFile:", audioFile); // Log received audio file
+
+  const message = audioFile.split('_')[1].split('.')[0]; // Extract message ID
+  try {
+    await lipSyncMessage(message); // Assuming this function exists for generating lipsync files
+    const lipsyncData = await readJsonTranscript(`audios/message_${message}.json`); // Read lipsync data from JSON
+
+    // Check if lipsyncData has the expected structure
+    if (lipsyncData.mouthCues && Array.isArray(lipsyncData.mouthCues)) {
+      res.send({ mouthCues: lipsyncData.mouthCues }); // Send back the lip sync data as an array
+    } else {
+      console.error("Lip sync data is not in the expected format:", lipsyncData);
+      res.status(500).send({ error: "Lip sync data is not in the expected format." });
+    }
+  } catch (error) {
+    console.error("Error generating lip sync:", error);
+    res.status(500).send({ error: "Failed to generate lip sync" });
+  }
+});
+
+
+// Your readJsonTranscript function
+const readJsonTranscript = async (file) => {
+  try {
+    const data = await fs.readFile(file, "utf8");
+    const jsonData = JSON.parse(data);
+    // Log the jsonData to see its structure
+    console.log("Lip Sync JSON Data:", jsonData);
+    return jsonData; // Ensure this returns the correct object
+  } catch (error) {
+    console.error(`Error reading JSON transcript from ${file}:`, error);
+    throw new Error("Failed to read JSON transcript");
+  }
+};
+
