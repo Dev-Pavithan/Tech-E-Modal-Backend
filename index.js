@@ -30,12 +30,13 @@ const BASE_AUDIO_PATH = path.resolve("./audios");
 app.use(express.json());
 app.use(cors({
   origin: [
-    'http://localhost:5173',
-    'https://dev-pavithan-tech-e-model-frontend.vercel.app'
+    'http://localhost:5173', // Local dev server
+    'https://dev-pavithan-tech-e-model-frontend.vercel.app' // Vercel frontend
   ],
   methods: ['POST', 'GET'],
   credentials: true
 }));
+
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
