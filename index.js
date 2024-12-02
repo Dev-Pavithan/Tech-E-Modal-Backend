@@ -17,9 +17,10 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173', // Or the domain of your frontend
-  methods: ['POST', 'GET']
+  origin: 'https://dev-pavithan-tech-e-model-frontend.vercel.app', // Updated to your deployed frontend URL
+  methods: ['POST', 'GET'],
 }));
+
 const port = 8000;
 
 app.get("/", (req, res) => {
